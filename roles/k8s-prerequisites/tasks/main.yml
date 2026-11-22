@@ -21,8 +21,6 @@
       - apt-transport-https
       - ca-certificates
       - lsb-release
-      - software-properties-common
-      - bridge-utils
       - iptables
     state: present
   become: yes
@@ -169,4 +167,3 @@
   ansible.builtin.debug:
     msg: "CRI-O is running successfully"
   when: crio_status.status.ActiveState == "active"
-
