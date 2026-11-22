@@ -91,7 +91,7 @@
 
 - name: Add CRI-O repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/cri-o-archive-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/ /"
+    repo: "deb [trusted=yes] https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/ /"
     state: present
   become: yes
 
@@ -135,7 +135,7 @@
 
 - name: Add Kubernetes repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /"
+    repo: "deb [trusted=yes] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /"
     state: present
   become: yes
 
