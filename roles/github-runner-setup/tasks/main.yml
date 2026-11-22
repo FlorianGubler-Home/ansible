@@ -19,25 +19,6 @@
     mode: '0755'
   become: yes
 
-- name: Configure proxy settings
-  ansible.builtin.shell: |
-    cat > /home/{{ github_runner_user }}/.bashrc.d/proxy << EOF
-    export http_proxy={{ http_proxy }}
-    export https_proxy={{ https_proxy }}
-    export HTTP_PROXY={{ http_proxy }}
-    export HTTPS_PROXY={{ https_proxy }}
-    export no_proxy={{ no_proxy }}
-    EOF
-    mkdir -p /home/{{ github_runner_user }}/.bashrc.d
-  become: yes
-
-- name: Configure git proxy
-  ansible.builtin.shell: |
-    git config --global http.proxy {{ http_proxy }}
-    git config --global https.proxy {{ https_proxy }}
-  become: yes
-  become_user: "{{ github_runner_user }}"
-
 - name: Create runner registration token from GitHub API
   ansible.builtin.uri:
     url: "https://api.github.com/orgs/{{ github_org }}/actions/runners/registration-token"
@@ -46,10 +27,6 @@
       Authorization: "token {{ vault_github_pat }}"
       Accept: "application/vnd.github.v3+json"
     status_code: 201
-  environment:
-    http_proxy: "{{ http_proxy }}"
-    https_proxy: "{{ https_proxy }}"
-    no_proxy: "{{ no_proxy }}"
   register: github_token_response
   no_log: true
   retries: 3
@@ -66,10 +43,6 @@
     url: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
     dest: "/tmp/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
     mode: '0644'
-  environment:
-    http_proxy: "{{ http_proxy }}"
-    https_proxy: "{{ https_proxy }}"
-    no_proxy: "{{ no_proxy }}"
   register: runner_download
   retries: 3
   delay: 5
@@ -118,10 +91,6 @@
       --replace
   become: yes
   become_user: "{{ github_runner_user }}"
-  environment:
-    http_proxy: "{{ http_proxy }}"
-    https_proxy: "{{ https_proxy }}"
-    no_proxy: "{{ no_proxy }}"
   no_log: true
   register: runner_config
   retries: 3
@@ -162,4 +131,3 @@
       Organization: {{ github_org }}
       Group: {{ github_runner_group }}
       Service: actions.runner.{{ github_org }}.{{ inventory_hostname }}
-
