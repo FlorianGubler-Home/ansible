@@ -6,6 +6,9 @@ github_runner_version: "2.332.0"
 github_runner_user: "github-runner"
 github_runner_home: "/home/github-runner"
 github_runner_labels: []
+github_runner_kubeconfig_path: "/home/github-runner/.kube/config"
+github_runner_kubectl_version: "1.32.0"
+github_runner_helm_version: "3.17.3"
 
 # Vault variable - must be defined in group_vars/github_runners/vault.yml
 # vault_github_pat: <encrypted_token>
@@ -16,3 +19,8 @@ github_runner_architecture_map:
   aarch64: "arm64"
 
 github_runner_architecture: "{{ github_runner_architecture_map[ansible_machine] | default('x64') }}"
+github_runner_kubernetes_architecture_map:
+  x86_64: "amd64"
+  aarch64: "arm64"
+
+github_runner_kubernetes_architecture: "{{ github_runner_kubernetes_architecture_map[ansible_machine] | default('amd64') }}"

@@ -164,9 +164,73 @@
   register: deps_install
   ignore_errors: yes
 
+- name: Install kubectl
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/v{{ github_runner_kubectl_version }}/bin/linux/{{ github_runner_kubernetes_architecture }}/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+  become: yes
+  retries: 3
+  delay: 5
+
+- name: Install Helm
+  ansible.builtin.unarchive:
+    src: "https://get.helm.sh/helm-v{{ github_runner_helm_version }}-linux-{{ github_runner_kubernetes_architecture }}.tar.gz"
+    dest: /tmp
+    remote_src: yes
+  become: yes
+
+- name: Copy Helm binary
+  ansible.builtin.copy:
+    src: "/tmp/linux-{{ github_runner_kubernetes_architecture }}/helm"
+    dest: /usr/local/bin/helm
+    remote_src: yes
+    mode: '0755'
+  become: yes
+
+- name: Remove temporary Helm directory
+  ansible.builtin.file:
+    path: "/tmp/linux-{{ github_runner_kubernetes_architecture }}"
+    state: absent
+  become: yes
+
+- name: Create runner kubeconfig directory
+  ansible.builtin.file:
+    path: "{{ github_runner_kubeconfig_path | dirname }}"
+    state: directory
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: '0700'
+  become: yes
+
+- name: Read kubeconfig from the matching Kubernetes master
+  ansible.builtin.slurp:
+    src: /etc/kubernetes/admin.conf
+  delegate_to: "{{ groups['k8s_master'] | intersect(groups[env_group]) | first }}"
+  become: yes
+  register: github_runner_kubeconfig
+
+- name: Install runner kubeconfig
+  ansible.builtin.copy:
+    content: "{{ github_runner_kubeconfig.content | b64decode }}"
+    dest: "{{ github_runner_kubeconfig_path }}"
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: '0600'
+  become: yes
+
+- name: Verify Kubernetes tools
+  ansible.builtin.shell: |
+    kubectl --kubeconfig={{ github_runner_kubeconfig_path }} version --client
+    helm version --short
+  become: yes
+  become_user: "{{ github_runner_user }}"
+  changed_when: false
+
 - name: Copy system environment into GitHub runner environment file
   ansible.builtin.shell: |
     cat /etc/environment > {{ github_runner_home }}/.env
+    printf '\nKUBECONFIG=%s\n' '{{ github_runner_kubeconfig_path }}' >> {{ github_runner_home }}/.env
   become: yes
   args:
     executable: /bin/bash
