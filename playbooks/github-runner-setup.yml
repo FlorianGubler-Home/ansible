@@ -34,14 +34,13 @@
           Setting up GitHub Actions runner
           Runner Name: {{ inventory_hostname }}
           Organization: {{ github_org }}
-          Runner Group: {{ github_runner_group }}
-          Environment: {{ env_group }}
+          Runner Group: {{ env_group }}
 
   roles:
     - role: github-runner-setup
       tags: [github-runner, setup]
       vars:
-        github_runner_group: "{{ env_group}}"
+        github_runner_group: "{{ env_group }}"
 
   post_tasks:
     - name: Verify runner is operational
