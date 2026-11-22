@@ -164,6 +164,21 @@
   register: deps_install
   ignore_errors: yes
 
+- name: Copy system environment into GitHub runner environment file
+  ansible.builtin.shell: |
+    cat /etc/environment > {{ github_runner_home }}/.env
+  become: yes
+  args:
+    executable: /bin/bash
+
+- name: Set GitHub runner environment file ownership
+  ansible.builtin.file:
+    path: "{{ github_runner_home }}/.env"
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: '0600'
+  become: yes
+
 - name: Register GitHub Actions runner
   ansible.builtin.shell: |
     set -a
