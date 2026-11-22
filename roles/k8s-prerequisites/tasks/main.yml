@@ -104,12 +104,19 @@
     update_cache: yes
   become: yes
 
-- name: Configure CRI-O to use the systemd cgroup manager
-  ansible.builtin.blockinfile:
+- name: Remove existing CRI-O cgroup setting
+  ansible.builtin.replace:
     path: /etc/crio/crio.conf.d/10-crio.conf
-    create: yes
-    block: |
-      [crio.runtime]
+    regexp: (?m)^cgroup_manager\s*=.*\n?
+    replace: ""
+  become: yes
+
+- name: Configure CRI-O to use the systemd cgroup manager
+  ansible.builtin.replace:
+    path: /etc/crio/crio.conf.d/10-crio.conf
+    regexp: (?m)^(\[crio\.runtime\])\s*$
+    replace: |
+      \1
       cgroup_manager = "systemd"
   become: yes
 
