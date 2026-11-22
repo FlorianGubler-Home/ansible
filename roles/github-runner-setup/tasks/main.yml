@@ -241,16 +241,9 @@
     mode: '0700'
   become: yes
 
-- name: Read kubeconfig from the matching Kubernetes master
-  ansible.builtin.slurp:
-    src: /etc/kubernetes/admin.conf
-  delegate_to: "{{ groups['k8s_master'] | intersect(groups[env_group]) | first }}"
-  become: yes
-  register: github_runner_kubeconfig
-
-- name: Install runner kubeconfig
+- name: Create runner kubeconfig
   ansible.builtin.copy:
-    content: "{{ github_runner_kubeconfig.content | b64decode }}"
+    content: ""
     dest: "{{ github_runner_kubeconfig_path }}"
     owner: "{{ github_runner_user }}"
     group: "{{ github_runner_user }}"
