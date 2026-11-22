@@ -165,33 +165,39 @@
   ignore_errors: yes
 
 - name: Install kubectl
-  ansible.builtin.get_url:
-    url: "https://dl.k8s.io/release/v{{ github_runner_kubectl_version }}/bin/linux/{{ github_runner_kubernetes_architecture }}/kubectl"
-    dest: /usr/local/bin/kubectl
-    mode: '0755'
+  ansible.builtin.shell: |
+    set -a
+    . /etc/environment
+    set +a
+    curl -fsSL --retry 3 \
+      "https://dl.k8s.io/release/v{{ github_runner_kubectl_version }}/bin/linux/{{ github_runner_kubernetes_architecture }}/kubectl" \
+      -o /usr/local/bin/kubectl
+    chmod 0755 /usr/local/bin/kubectl
   become: yes
-  retries: 3
-  delay: 5
+  args:
+    executable: /bin/bash
 
 - name: Install Helm
-  ansible.builtin.unarchive:
-    src: "https://get.helm.sh/helm-v{{ github_runner_helm_version }}-linux-{{ github_runner_kubernetes_architecture }}.tar.gz"
-    dest: /tmp
-    remote_src: yes
+  ansible.builtin.shell: |
+    set -a
+    . /etc/environment
+    set +a
+    curl -fsSL --retry 3 \
+      "https://get.helm.sh/helm-v{{ github_runner_helm_version }}-linux-{{ github_runner_kubernetes_architecture }}.tar.gz" \
+      -o /tmp/helm.tar.gz
+    tar -xzf /tmp/helm.tar.gz -C /tmp
+    install -m 0755 "/tmp/linux-{{ github_runner_kubernetes_architecture }}/helm" /usr/local/bin/helm
   become: yes
+  args:
+    executable: /bin/bash
 
-- name: Copy Helm binary
-  ansible.builtin.copy:
-    src: "/tmp/linux-{{ github_runner_kubernetes_architecture }}/helm"
-    dest: /usr/local/bin/helm
-    remote_src: yes
-    mode: '0755'
-  become: yes
-
-- name: Remove temporary Helm directory
+- name: Remove temporary Helm files
   ansible.builtin.file:
-    path: "/tmp/linux-{{ github_runner_kubernetes_architecture }}"
+    path: "{{ item }}"
     state: absent
+  loop:
+    - /tmp/helm.tar.gz
+    - "/tmp/linux-{{ github_runner_kubernetes_architecture }}"
   become: yes
 
 - name: Create runner kubeconfig directory
@@ -221,6 +227,9 @@
 
 - name: Verify Kubernetes tools
   ansible.builtin.shell: |
+    set -a
+    . /etc/environment
+    set +a
     kubectl --kubeconfig={{ github_runner_kubeconfig_path }} version --client
     helm version --short
   become: yes

@@ -10,6 +10,9 @@
 - name: Initialize Kubernetes master cluster
   ansible.builtin.shell: |
     set -euo pipefail
+    set -a
+    . /etc/environment
+    set +a
     kubeadm init \
       --cri-socket unix:///var/run/crio/crio.sock \
       --pod-network-cidr="{{ k8s_pod_cidr }}" \
