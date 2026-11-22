@@ -52,10 +52,6 @@
           Accept: "application/vnd.github.v3+json"
       register: runners_list
       no_log: true
-      environment:
-        http_proxy: "{{ http_proxy }}"
-        https_proxy: "{{ https_proxy }}"
-        no_proxy: "{{ no_proxy }}"
 
     - name: Check runner registration in API
       ansible.builtin.set_fact:
