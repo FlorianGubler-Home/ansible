@@ -16,10 +16,6 @@
       --kubernetes-version="v{{ k8s_version }}" \
       --ignore-preflight-errors=NumCPU,MemSize \
       --skip-token-print
-  environment:
-    http_proxy: "{{ http_proxy | default('') }}"
-    https_proxy: "{{ https_proxy | default('') }}"
-    no_proxy: "{{ no_proxy | default('') }}"
   become: yes
   when: not k8s_initialized.stat.exists
   register: kubeadm_init
@@ -91,10 +87,6 @@
     kubectl --kubeconfig=/root/.kube/config apply -f https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/tigera-operator.yaml
   become: yes
   when: not k8s_initialized.stat.exists
-  environment:
-    http_proxy: "{{ http_proxy | default('') }}"
-    https_proxy: "{{ https_proxy | default('') }}"
-    no_proxy: "{{ no_proxy | default('') }}"
   register: calico_deploy
   until: calico_deploy.rc == 0
   retries: 3

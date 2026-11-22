@@ -76,10 +76,10 @@
     set +a
     
     # Kubernetes
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_minor_version }}/deb/Release.key |
         gpg --dearmor --batch --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-  
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /" |
+
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_minor_version }}/deb/ /" |
         tee /etc/apt/sources.list.d/kubernetes.list
     
     # C-RIO

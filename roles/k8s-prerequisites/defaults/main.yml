@@ -1,7 +1,4 @@
 ---
 # Default variables for k8s-prerequisites role
 
-# Kubernetes and CRI-O versions
-k8s_version: "1.32"
-crio_version: "1.32"
-
+# Default variables for k8s-prerequisites role
