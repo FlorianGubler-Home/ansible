@@ -179,4 +179,3 @@
       Kubernetes master initialized successfully
       API Endpoint: {{ k8s_api_endpoint }}
       Join Token: {{ k8s_join_token | default('(already initialized)') }}
-

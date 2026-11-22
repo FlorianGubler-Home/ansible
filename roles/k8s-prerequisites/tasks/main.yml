@@ -70,7 +70,7 @@
 
 - name: Add CRI-O repository key
   ansible.builtin.get_url:
-    url: "https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/Release.key"
+    url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v{{ crio_version }}/deb/Release.key"
     dest: /usr/share/keyrings/cri-o-archive-keyring.asc
     mode: '0644'
   environment:
@@ -91,7 +91,7 @@
 
 - name: Add CRI-O repository
   ansible.builtin.apt_repository:
-    repo: "deb [trusted=yes] https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/ /"
+    repo: "deb [signed-by=/usr/share/keyrings/cri-o-archive-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v{{ crio_version }}/deb/ /"
     state: present
   become: yes
 
@@ -99,9 +99,17 @@
   ansible.builtin.apt:
     name:
       - cri-o
-      - cri-o-runc
     state: present
     update_cache: yes
+  become: yes
+
+- name: Configure CRI-O to use the systemd cgroup manager
+  ansible.builtin.blockinfile:
+    path: /etc/crio/crio.conf.d/10-crio.conf
+    create: yes
+    block: |
+      [crio.runtime]
+      cgroup_manager = "systemd"
   become: yes
 
 - name: Enable and start CRI-O service
@@ -135,7 +143,7 @@
 
 - name: Add Kubernetes repository
   ansible.builtin.apt_repository:
-    repo: "deb [trusted=yes] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /"
+    repo: "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[:2] | join('.') }}/deb/ /"
     state: present
   become: yes
 
