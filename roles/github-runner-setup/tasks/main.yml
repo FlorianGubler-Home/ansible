@@ -86,12 +86,12 @@
       when: (github_runner_install_files.results | selectattr('item', 'equalto', 'svc.sh') | first).stat.exists
 
     - name: Unregister existing runner from GitHub
-      ansible.builtin.command:
-        argv:
-          - ./config.sh
-          - remove
-          - --token
-          - "{{ github_removal_token }}"
+      ansible.builtin.shell: |
+        set -a
+        . /etc/environment
+        set +a
+        cd {{ github_runner_home }}
+        ./config.sh remove --token "{{ github_removal_token }}"
       args:
         chdir: "{{ github_runner_home }}"
       become: yes
