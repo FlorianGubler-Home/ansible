@@ -80,6 +80,9 @@
 
 - name: Register GitHub Actions runner
   ansible.builtin.shell: |
+    set -a
+    . /etc/environment
+    set +a
     cd {{ github_runner_home }}
     ./config.sh \
       --url https://github.com/{{ github_org }} \
