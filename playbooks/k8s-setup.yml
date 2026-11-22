@@ -29,7 +29,6 @@
       apply:
         tags: always
 
----
 # Master initialization play
 - name: Initialize Kubernetes Masters
   hosts: "k8s_master:&{{ env_group }}"
@@ -40,7 +39,6 @@
     - role: k8s-master-init
       tags: [master, init]
 
----
 # Worker join play
 - name: Join Kubernetes Workers
   hosts: "k8s_worker:&{{ env_group }}"
