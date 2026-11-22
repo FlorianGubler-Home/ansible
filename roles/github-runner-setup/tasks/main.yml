@@ -95,8 +95,6 @@
   become: yes
   become_user: "{{ github_runner_user }}"
   register: runner_config
-  retries: 3
-  delay: 10
   until: runner_config.rc == 0
 
 - name: Install runner as systemd service
