@@ -94,7 +94,6 @@
       --replace
   become: yes
   become_user: "{{ github_runner_user }}"
-  no_log: true
   register: runner_config
   retries: 3
   delay: 10
