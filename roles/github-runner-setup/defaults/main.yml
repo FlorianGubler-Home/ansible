@@ -7,7 +7,7 @@ github_runner_user: "github-runner"
 github_runner_home: "/home/github-runner"
 github_runner_labels: []
 github_runner_kubeconfig_path: "/home/github-runner/.kube/config"
-github_runner_kubectl_version: "1.32.0"
+github_runner_kubectl_version: "1.32"
 github_runner_helm_version: "3.17.3"
 
 # Vault variable - must be defined in group_vars/github_runners/vault.yml

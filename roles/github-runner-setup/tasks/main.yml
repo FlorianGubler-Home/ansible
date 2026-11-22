@@ -164,40 +164,86 @@
   register: deps_install
   ignore_errors: yes
 
-- name: Install kubectl
-  ansible.builtin.shell: |
-    set -a
-    . /etc/environment
-    set +a
-    curl -fsSL --retry 3 \
-      "https://dl.k8s.io/release/v{{ github_runner_kubectl_version }}/bin/linux/{{ github_runner_kubernetes_architecture }}/kubectl" \
-      -o /usr/local/bin/kubectl
-    chmod 0755 /usr/local/bin/kubectl
+- name: Install package manager dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gpg
+    state: present
+    update_cache: yes
   become: yes
-  args:
-    executable: /bin/bash
 
-- name: Install Helm
-  ansible.builtin.shell: |
-    set -a
-    . /etc/environment
-    set +a
-    curl -fsSL --retry 3 \
-      "https://get.helm.sh/helm-v{{ github_runner_helm_version }}-linux-{{ github_runner_kubernetes_architecture }}.tar.gz" \
-      -o /tmp/helm.tar.gz
-    tar -xzf /tmp/helm.tar.gz -C /tmp
-    install -m 0755 "/tmp/linux-{{ github_runner_kubernetes_architecture }}/helm" /usr/local/bin/helm
-  become: yes
-  args:
-    executable: /bin/bash
-
-- name: Remove temporary Helm files
+- name: Ensure APT keyring directory exists
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Add Kubernetes APT repository
+  ansible.builtin.shell: |
+    set -euo pipefail
+    set -a
+    . /etc/environment
+    set +a
+
+    curl -fsSL "https://pkgs.k8s.io/core:/stable:/v{{ github_runner_kubectl_version }}/deb/Release.key" |
+      gpg --dearmor --batch --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    printf 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ github_runner_kubectl_minor_version }}/deb/ /\n' |
+      tee /etc/apt/sources.list.d/kubernetes.list
+  args:
+    executable: /bin/bash
+  become: yes
+  changed_when: false
+
+- name: Add Helm APT repository
+  ansible.builtin.shell: |
+    set -euo pipefail
+    set -a
+    . /etc/environment
+    set +a
+
+    HELM_BUILDKITE_APT_KEY_ID="DDF78C3E6EBB2D2CC223C95C62BA89D07698DBC6"
+    curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey |
+      tee /tmp/helm.asc >/dev/null
+
+    if [ "$(gpg --import --import-options=show-only --with-colons /tmp/helm.asc |
+      awk -F: '$1 == "fpr" {print $10}' | head -n 1)" != "${HELM_BUILDKITE_APT_KEY_ID}" ]; then
+      echo "ERROR: Unexpected Helm APT key ID: potential key compromise"
+      exit 1
+    fi
+
+    rm -f /etc/apt/sources.list.d/helm-stable-debian.list /usr/share/keyrings/helm.gpg
+    install -m 0644 /tmp/helm.asc /etc/apt/keyrings/helm.asc
+
+    tee /etc/apt/sources.list.d/helm-stable-debian.sources >/dev/null <<EOF
+    Types: deb
+    URIs: https://packages.buildkite.com/helm-linux/helm-debian/any/
+    Suites: any
+    Components: main
+    Signed-By: /etc/apt/keyrings/helm.asc
+    EOF
+  args:
+    executable: /bin/bash
+  become: yes
+  changed_when: false
+
+- name: Install kubectl and Helm packages
+  ansible.builtin.apt:
+    name:
+      - kubectl
+      - helm
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Remove temporary Helm key
+  ansible.builtin.file:
+    path: /tmp/helm.asc
     state: absent
-  loop:
-    - /tmp/helm.tar.gz
-    - "/tmp/linux-{{ github_runner_kubernetes_architecture }}"
   become: yes
 
 - name: Create runner kubeconfig directory
