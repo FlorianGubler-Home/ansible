@@ -4,16 +4,24 @@
 # Uses inventory groups to determine node roles
 
 - name: Kubernetes Cluster Setup
-  hosts: k8s_all
+  hosts: "k8s:&{{ env_group }}"
   gather_facts: yes
   become: no
 
   pre_tasks:
+    - name: Validate Kubernetes environment
+      ansible.builtin.assert:
+        that:
+          - env_group is defined
+          - env_group in ['dev', 'prod']
+        fail_msg: "Unsupported env_group '{{ env_group | default('undefined') }}'. Use dev or prod."
+
     - name: Verify inventory organization
       ansible.builtin.debug:
         msg: |
-          K8s Masters: {{ groups.get('k8s_masters', []) }}
-          K8s Workers: {{ groups.get('k8s_workers', []) }}
+          Environment: {{ env_group }}
+          K8s Masters: {{ groups['k8s_master'] | intersect(groups[env_group]) }}
+          K8s Workers: {{ groups['k8s_worker'] | intersect(groups[env_group]) }}
 
   roles:
     - name: Install Kubernetes prerequisites on all nodes
@@ -24,7 +32,7 @@
 ---
 # Master initialization play
 - name: Initialize Kubernetes Masters
-  hosts: k8s_masters
+  hosts: "k8s_master:&{{ env_group }}"
   gather_facts: yes
   become: no
 
@@ -35,7 +43,7 @@
 ---
 # Worker join play
 - name: Join Kubernetes Workers
-  hosts: k8s_workers
+  hosts: "k8s_worker:&{{ env_group }}"
   gather_facts: yes
   become: no
   serial: 1  # Join workers one at a time to avoid overwhelming control plane
@@ -43,7 +51,7 @@
   pre_tasks:
     - name: Wait for cluster masters to be ready
       ansible.builtin.wait_for:
-        host: "{{ hostvars[groups['k8s_masters'][0]].ansible_host }}"
+        host: "{{ hostvars[(groups['k8s_master'] | intersect(groups[env_group]) | first)].ansible_host }}"
         port: 6443
         timeout: 600
       delegate_to: localhost
@@ -57,4 +65,3 @@
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }} successfully joined the cluster"
       tags: [worker, join]
-

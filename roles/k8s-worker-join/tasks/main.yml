@@ -9,9 +9,9 @@
 
 - name: Get join token from master
   ansible.builtin.set_fact:
-    k8s_join_token: "{{ hostvars[groups['k8s_masters'][0]]['k8s_join_token'] }}"
-    k8s_api_endpoint: "{{ hostvars[groups['k8s_masters'][0]]['k8s_api_endpoint'] }}"
-    k8s_ca_cert_hash: "{{ hostvars[groups['k8s_masters'][0]]['k8s_ca_cert_hash'] }}"
+    k8s_join_token: "{{ hostvars[(groups['k8s_master'] | intersect(groups[env_group]) | first)]['k8s_join_token'] }}"
+    k8s_api_endpoint: "{{ hostvars[(groups['k8s_master'] | intersect(groups[env_group]) | first)]['k8s_api_endpoint'] }}"
+    k8s_ca_cert_hash: "{{ hostvars[(groups['k8s_master'] | intersect(groups[env_group]) | first)]['k8s_ca_cert_hash'] }}"
   when: not kubelet_config.stat.exists
   register: join_facts
 
@@ -87,7 +87,7 @@
     echo "Node failed to become ready"
     exit 1
   become: yes
-  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  delegate_to: "{{ groups['k8s_master'] | intersect(groups[env_group]) | first }}"
   changed_when: false
   register: node_ready
   until: node_ready.rc == 0
@@ -98,4 +98,3 @@
   ansible.builtin.debug:
     msg: |
       Worker node {{ inventory_hostname }} joined cluster successfully
-
