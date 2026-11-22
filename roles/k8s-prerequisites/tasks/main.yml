@@ -71,6 +71,9 @@
 - name: Add Kubernetes and C-RIO Repository
   ansible.builtin.shell: |
     set -euo pipefail
+    set -a
+    . /etc/environment
+    set +a
     
     # Kubernetes
     curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key |
