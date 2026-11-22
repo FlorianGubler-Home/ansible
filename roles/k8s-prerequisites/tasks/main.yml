@@ -68,37 +68,31 @@
     replace: '# \1'
   become: yes
 
-- name: Add CRI-O repository key
-  ansible.builtin.get_url:
-    url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v{{ crio_version }}/deb/Release.key"
-    dest: /usr/share/keyrings/cri-o-archive-keyring.asc
-    mode: '0644'
-  environment:
-    http_proxy: "{{ http_proxy | default('') }}"
-    https_proxy: "{{ https_proxy | default('') }}"
-    no_proxy: "{{ no_proxy | default('') }}"
-  become: yes
-  register: crio_key
-  until: crio_key is succeeded
-  retries: 3
-  delay: 5
-
-- name: Dearmor CRI-O repository key
+- name: Add Kubernetes and C-RIO Repository
   ansible.builtin.shell: |
-    gpg --batch --yes --dearmor --output /usr/share/keyrings/cri-o-archive-keyring.gpg /usr/share/keyrings/cri-o-archive-keyring.asc
+    # Kubernetes
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key |
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /" |
+        tee /etc/apt/sources.list.d/kubernetes.list
+    
+    # C-RIO
+    curl -fsSL https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/Release.key |
+        gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/ /" |
+        tee /etc/apt/sources.list.d/cri-o.list
   become: yes
   changed_when: false
 
-- name: Add CRI-O repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/cri-o-archive-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v{{ crio_version }}/deb/ /"
-    state: present
-  become: yes
-
-- name: Install CRI-O
+- name: Install Kubernetes and CRI-O packages
   ansible.builtin.apt:
     name:
       - cri-o
+      - kubelet
+      - kubeadm
+      - kubectl
     state: present
     update_cache: yes
   become: yes
@@ -118,33 +112,6 @@
     state: started
     enabled: yes
     daemon_reload: yes
-  become: yes
-
-- name: Add Kubernetes repository key
-  ansible.builtin.get_url:
-    url: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key"
-    dest: /usr/share/keyrings/kubernetes-archive-keyring.asc
-    mode: '0644'
-  environment:
-    http_proxy: "{{ http_proxy | default('') }}"
-    https_proxy: "{{ https_proxy | default('') }}"
-    no_proxy: "{{ no_proxy | default('') }}"
-  become: yes
-  register: k8s_key
-  until: k8s_key is succeeded
-  retries: 3
-  delay: 5
-
-- name: Dearmor Kubernetes repository key
-  ansible.builtin.shell: |
-    gpg --batch --yes --dearmor --output /usr/share/keyrings/kubernetes-archive-keyring.gpg /usr/share/keyrings/kubernetes-archive-keyring.asc
-  become: yes
-  changed_when: false
-
-- name: Add Kubernetes repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[:2] | join('.') }}/deb/ /"
-    state: present
   become: yes
 
 - name: Install Kubernetes tools
