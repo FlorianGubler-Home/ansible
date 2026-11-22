@@ -94,8 +94,6 @@
       --replace
   become: yes
   become_user: "{{ github_runner_user }}"
-  register: runner_config
-  until: runner_config.rc == 0
 
 - name: Install runner as systemd service
   ansible.builtin.shell: |
