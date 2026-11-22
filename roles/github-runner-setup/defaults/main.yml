@@ -12,9 +12,8 @@ github_runner_labels: []
 # vault_github_pat: <encrypted_token>
 
 # Map dpkg architecture to runner release architecture
-ansible_architecture_map:
+github_runner_architecture_map:
   x86_64: "x64"
   aarch64: "arm64"
 
-ansible_architecture: "{{ ansible_architecture_map[ansible_machine] | default('x64') }}"
-
+github_runner_architecture: "{{ github_runner_architecture_map[ansible_machine] | default('x64') }}"

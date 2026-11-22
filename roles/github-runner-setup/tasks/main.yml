@@ -40,8 +40,8 @@
 
 - name: Download GitHub Actions runner
   ansible.builtin.get_url:
-    url: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
-    dest: "/tmp/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
+    url: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-{{ github_runner_architecture }}-{{ github_runner_version }}.tar.gz"
+    dest: "/tmp/actions-runner-linux-{{ github_runner_architecture }}-{{ github_runner_version }}.tar.gz"
     mode: '0644'
   register: runner_download
   retries: 3
@@ -50,7 +50,7 @@
 
 - name: Extract runner archive
   ansible.builtin.unarchive:
-    src: "/tmp/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
+    src: "/tmp/actions-runner-linux-{{ github_runner_architecture }}-{{ github_runner_version }}.tar.gz"
     dest: "{{ github_runner_home }}"
     remote_src: yes
     owner: "{{ github_runner_user }}"
@@ -59,7 +59,7 @@
 
 - name: Clean up runner tarball
   ansible.builtin.file:
-    path: "/tmp/actions-runner-linux-{{ ansible_architecture }}-{{ github_runner_version }}.tar.gz"
+    path: "/tmp/actions-runner-linux-{{ github_runner_architecture }}-{{ github_runner_version }}.tar.gz"
     state: absent
 
 - name: Install runner dependencies
