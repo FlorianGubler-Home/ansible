@@ -69,10 +69,10 @@
   become: yes
 
 - name: Add CRI-O repository key
-  ansible.builtin.apt_key:
+  ansible.builtin.get_url:
     url: "https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/deb/Release.key"
-    keyring: /usr/share/keyrings/cri-o-archive-keyring.gpg
-    state: present
+    dest: /usr/share/keyrings/cri-o-archive-keyring.asc
+    mode: '0644'
   environment:
     http_proxy: "{{ http_proxy | default('') }}"
     https_proxy: "{{ https_proxy | default('') }}"
@@ -82,6 +82,12 @@
   until: crio_key is succeeded
   retries: 3
   delay: 5
+
+- name: Dearmor CRI-O repository key
+  ansible.builtin.shell: |
+    gpg --batch --yes --dearmor --output /usr/share/keyrings/cri-o-archive-keyring.gpg /usr/share/keyrings/cri-o-archive-keyring.asc
+  become: yes
+  changed_when: false
 
 - name: Add CRI-O repository
   ansible.builtin.apt_repository:
@@ -107,10 +113,10 @@
   become: yes
 
 - name: Add Kubernetes repository key
-  ansible.builtin.apt_key:
+  ansible.builtin.get_url:
     url: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key"
-    keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
-    state: present
+    dest: /usr/share/keyrings/kubernetes-archive-keyring.asc
+    mode: '0644'
   environment:
     http_proxy: "{{ http_proxy | default('') }}"
     https_proxy: "{{ https_proxy | default('') }}"
@@ -120,6 +126,12 @@
   until: k8s_key is succeeded
   retries: 3
   delay: 5
+
+- name: Dearmor Kubernetes repository key
+  ansible.builtin.shell: |
+    gpg --batch --yes --dearmor --output /usr/share/keyrings/kubernetes-archive-keyring.gpg /usr/share/keyrings/kubernetes-archive-keyring.asc
+  become: yes
+  changed_when: false
 
 - name: Add Kubernetes repository
   ansible.builtin.apt_repository:
