@@ -5,7 +5,6 @@ github_org: "FlorianGubler-Home"
 github_runner_version: "2.332.0"
 github_runner_user: "github-runner"
 github_runner_home: "/home/github-runner"
-github_runner_group: "default"
 github_runner_labels: []
 
 # Vault variable - must be defined in group_vars/github_runners/vault.yml

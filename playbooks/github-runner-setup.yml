@@ -8,6 +8,13 @@
   become: no
 
   pre_tasks:
+    - name: Validate runner environment
+      ansible.builtin.assert:
+        that:
+          - env_group is defined
+          - env_group in ['dev', 'prod']
+        fail_msg: "Unsupported env_group '{{ env_group | default('undefined') }}'. Use dev, prod."
+
     - name: Wait for SSH to be ready
       ansible.builtin.wait_for_connection:
         delay: 10
@@ -28,11 +35,13 @@
           Runner Name: {{ inventory_hostname }}
           Organization: {{ github_org }}
           Runner Group: {{ github_runner_group }}
-          Environment: {{ hostvars[inventory_hostname].get('vm_environment', 'unknown') }}
+          Environment: {{ env_group }}
 
   roles:
     - role: github-runner-setup
       tags: [github-runner, setup]
+      vars:
+        github_runner_group: "{{ env_group}}"
 
   post_tasks:
     - name: Verify runner is operational
@@ -62,4 +71,3 @@
           ⚠ Warning: Runner {{ inventory_hostname }} may not be visible in GitHub API yet
           This can be normal - allow 30-60 seconds for synchronization
           {% endif %}
-
