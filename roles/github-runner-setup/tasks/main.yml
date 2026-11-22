@@ -69,15 +69,6 @@
   register: deps_install
   ignore_errors: yes
 
-- name: Create runner configuration directory
-  ansible.builtin.file:
-    path: "{{ github_runner_home }}/.runner"
-    state: directory
-    owner: "{{ github_runner_user }}"
-    group: "{{ github_runner_user }}"
-    mode: '0755'
-  become: yes
-
 - name: Register GitHub Actions runner
   ansible.builtin.shell: |
     set -a
