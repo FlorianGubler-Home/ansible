@@ -19,6 +19,101 @@
     mode: '0755'
   become: yes
 
+- name: Set GitHub runner service name
+  ansible.builtin.set_fact:
+    github_runner_service_name: "actions.runner.{{ github_org }}.{{ inventory_hostname }}"
+
+- name: Check for an existing GitHub runner installation
+  ansible.builtin.stat:
+    path: "{{ github_runner_home }}/{{ item }}"
+  loop:
+    - .runner
+    - svc.sh
+    - config.sh
+  register: github_runner_install_files
+
+- name: Collect systemd service facts
+  ansible.builtin.service_facts:
+
+- name: Determine whether a GitHub runner is already installed
+  ansible.builtin.set_fact:
+    github_runner_installed: >-
+      {{
+        (github_runner_install_files.results
+          | selectattr('stat.exists', 'equalto', true)
+          | list
+          | length > 0)
+        or
+        ((github_runner_service_name + '.service') in ansible_facts.services)
+      }}
+
+- name: Remove existing GitHub Actions runner
+  when: github_runner_installed | bool
+  block:
+    - name: Create runner removal token from GitHub API
+      ansible.builtin.uri:
+        url: "https://api.github.com/orgs/{{ github_org }}/actions/runners/remove-token"
+        method: POST
+        headers:
+          Authorization: "token {{ vault_github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 201
+      register: github_remove_token_response
+      no_log: true
+      retries: 3
+      delay: 5
+      until: github_remove_token_response.status == 201
+
+    - name: Set runner removal token fact
+      ansible.builtin.set_fact:
+        github_removal_token: "{{ github_remove_token_response.json.token }}"
+      no_log: true
+
+    - name: Stop and disable existing runner service
+      ansible.builtin.systemd:
+        name: "{{ github_runner_service_name }}"
+        enabled: no
+        state: stopped
+        daemon_reload: yes
+      become: yes
+      when: (github_runner_service_name + '.service') in ansible_facts.services
+
+    - name: Uninstall existing runner systemd service
+      ansible.builtin.shell: |
+        cd {{ github_runner_home }}
+        ./svc.sh uninstall
+      become: yes
+      when: (github_runner_install_files.results | selectattr('item', 'equalto', 'svc.sh') | first).stat.exists
+
+    - name: Unregister existing runner from GitHub
+      ansible.builtin.command:
+        argv:
+          - ./config.sh
+          - remove
+          - --token
+          - "{{ github_removal_token }}"
+      args:
+        chdir: "{{ github_runner_home }}"
+      become: yes
+      become_user: "{{ github_runner_user }}"
+      no_log: true
+      when: (github_runner_install_files.results | selectattr('item', 'equalto', 'config.sh') | first).stat.exists
+
+    - name: Remove existing runner installation directory
+      ansible.builtin.file:
+        path: "{{ github_runner_home }}"
+        state: absent
+      become: yes
+
+- name: Recreate github-runner home directory
+  ansible.builtin.file:
+    path: "{{ github_runner_home }}"
+    state: directory
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: '0755'
+  become: yes
+
 - name: Create runner registration token from GitHub API
   ansible.builtin.uri:
     url: "https://api.github.com/orgs/{{ github_org }}/actions/runners/registration-token"
