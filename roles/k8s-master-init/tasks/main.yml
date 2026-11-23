@@ -74,13 +74,11 @@
   retries: 1
 
 - name: Deploy Calico CNI - Create calico namespace
-  kubernetes.core.k8s:
-    name: calico-system
-    api_version: v1
-    kind: Namespace
-    state: present
-    kubeconfig: /root/.kube/config
+  ansible.builtin.shell: |
+    kubectl --kubeconfig=/root/.kube/config create namespace calico-system --dry-run=client -o yaml |
+      kubectl --kubeconfig=/root/.kube/config apply -f -
   become: yes
+  changed_when: false
 
 - name: Deploy Calico CNI - Apply Tigera operator
   ansible.builtin.shell: |
@@ -101,22 +99,21 @@
   changed_when: false
 
 - name: Create Calico configuration CR
-  kubernetes.core.k8s:
-    state: present
-    kubeconfig: /root/.kube/config
-    definition:
-      apiVersion: operator.tigera.io/v1
-      kind: Installation
-      metadata:
-        name: default
-      spec:
-        calicoNetwork:
-          ipPools:
-            - blockSize: 26
-              cidr: "{{ k8s_pod_cidr }}"
-              encapsulation: VXLan
-              natOutgoing: Enabled
-              nodeSelector: all()
+  ansible.builtin.shell: |
+    cat <<EOF | kubectl --kubeconfig=/root/.kube/config apply -f -
+    apiVersion: operator.tigera.io/v1
+    kind: Installation
+    metadata:
+      name: default
+    spec:
+      calicoNetwork:
+        ipPools:
+          - blockSize: 26
+            cidr: "{{ k8s_pod_cidr }}"
+            encapsulation: VXLan
+            natOutgoing: Enabled
+            nodeSelector: all()
+    EOF
   become: yes
 
 - name: Generate kubeadm join token
