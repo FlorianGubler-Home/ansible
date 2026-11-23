@@ -19,8 +19,11 @@
   ansible.builtin.assert:
     that:
       - k8s_join_token is defined
+      - k8s_join_token | length > 0
       - k8s_api_endpoint is defined
+      - k8s_api_endpoint | length > 0
       - k8s_ca_cert_hash is defined
+      - k8s_ca_cert_hash | length > 0
     fail_msg: "Failed to obtain join token from master. Ensure master role was executed first."
   when: not kubelet_config.stat.exists
 

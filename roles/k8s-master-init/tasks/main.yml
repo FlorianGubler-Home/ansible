@@ -135,12 +135,9 @@
   register: cert_key
   changed_when: false
 
-- name: Get API server endpoint
-  ansible.builtin.shell: |
-    kubectl --kubeconfig=/root/.kube/config cluster-info | grep 'Kubernetes master' | awk '/https/ {print $NF}'
-  become: yes
-  register: api_endpoint
-  changed_when: false
+- name: Set API server endpoint
+  ansible.builtin.set_fact:
+    k8s_api_endpoint: "https://{{ ansible_host }}:6443"
 
 - name: Get CA cert hash
   ansible.builtin.shell: |
@@ -152,7 +149,6 @@
 - name: Set join token facts for workers
   ansible.builtin.set_fact:
     k8s_join_token: "{{ join_token.stdout }}"
-    k8s_api_endpoint: "{{ api_endpoint.stdout }}"
     k8s_ca_cert_hash: "{{ ca_cert_hash.stdout }}"
 
 - name: Display cluster initialization status
