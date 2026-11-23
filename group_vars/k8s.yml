@@ -2,5 +2,7 @@
 k8s_version: "1.32.0"
 k8s_minor_version: "{{ k8s_version | regex_replace('^([0-9]+\\.[0-9]+).*$', '\\1') }}"
 k8s_pod_cidr: "172.16.0.0/16"
+k8s_service_cidr: "10.96.0.0/12"
+k8s_no_proxy_entries: "{{ k8s_pod_cidr }},{{ k8s_service_cidr }},localhost,127.0.0.1,::1,kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local,*.svc,*.svc.cluster.local,cluster.local"
 crio_version: "1.32"
 calico_version: "v3.27.0"

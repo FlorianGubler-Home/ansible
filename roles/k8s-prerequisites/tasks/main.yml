@@ -131,8 +131,8 @@
     cat /etc/environment >> "$tmp"
     tac "$tmp" | awk -F= '!seen[$1]++' | tac > "$merged"
     sed -i 's|,{{ k8s_pod_cidr }}||g' "$merged"
-    sed -i '\|^no_proxy=| s|$|,{{ k8s_pod_cidr }}|' "$merged"
-    sed -i '\|^NO_PROXY=| s|$|,{{ k8s_pod_cidr }}|' "$merged"
+    sed -i '\|^no_proxy=| s|$|,{{ k8s_no_proxy_entries }}|' "$merged"
+    sed -i '\|^NO_PROXY=| s|$|,{{ k8s_no_proxy_entries }}|' "$merged"
     if ! cmp -s "$merged" /etc/default/crio; then
       cp "$merged" /etc/default/crio
       echo changed
