@@ -241,14 +241,36 @@
     mode: '0700'
   become: yes
 
-- name: Create runner kubeconfig
+- name: Validate Kubernetes master for runner environment
+  ansible.builtin.assert:
+    that:
+      - groups['k8s_master'] is defined
+      - groups[env_group] is defined
+      - (groups['k8s_master'] | intersect(groups[env_group]) | length) > 0
+    fail_msg: "No Kubernetes master found for environment '{{ env_group }}'"
+
+- name: Resolve Kubernetes master for runner environment
+  ansible.builtin.set_fact:
+    github_runner_kubernetes_master: >-
+      {{ groups['k8s_master'] | intersect(groups[env_group]) | first }}
+
+- name: Read Kubernetes admin kubeconfig from environment master
+  ansible.builtin.slurp:
+    src: /etc/kubernetes/admin.conf
+  delegate_to: "{{ github_runner_kubernetes_master }}"
+  become: yes
+  register: github_runner_admin_kubeconfig
+  no_log: true
+
+- name: Configure runner kubeconfig
   ansible.builtin.copy:
-    content: ""
+    content: "{{ github_runner_admin_kubeconfig.content | b64decode }}"
     dest: "{{ github_runner_kubeconfig_path }}"
     owner: "{{ github_runner_user }}"
     group: "{{ github_runner_user }}"
     mode: '0600'
   become: yes
+  no_log: true
 
 - name: Verify Kubernetes tools
   ansible.builtin.shell: |
@@ -256,22 +278,29 @@
     . /etc/environment
     set +a
     kubectl --kubeconfig={{ github_runner_kubeconfig_path }} version --client
+    kubectl --kubeconfig={{ github_runner_kubeconfig_path }} get --raw=/readyz
     helm version --short
   become: yes
   become_user: "{{ github_runner_user }}"
   changed_when: false
 
 - name: Copy system environment into GitHub runner environment file
-  ansible.builtin.shell: |
-    cat /etc/environment > {{ github_runner_home }}/.env
-    printf '\nKUBECONFIG=%s\n' '{{ github_runner_kubeconfig_path }}' >> {{ github_runner_home }}/.env
+  ansible.builtin.copy:
+    src: /etc/environment
+    dest: "{{ github_runner_home }}/.env"
+    remote_src: yes
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: '0600'
   become: yes
-  args:
-    executable: /bin/bash
 
-- name: Set GitHub runner environment file ownership
-  ansible.builtin.file:
+- name: Configure runner KUBECONFIG environment
+  ansible.builtin.lineinfile:
     path: "{{ github_runner_home }}/.env"
+    regexp: '^KUBECONFIG='
+    line: "KUBECONFIG={{ github_runner_kubeconfig_path }}"
+    insertafter: EOF
+    create: yes
     owner: "{{ github_runner_user }}"
     group: "{{ github_runner_user }}"
     mode: '0600'
