@@ -81,13 +81,11 @@
     state: present
     kubeconfig: /root/.kube/config
   become: yes
-  when: not k8s_initialized.stat.exists
 
 - name: Deploy Calico CNI - Apply Tigera operator
   ansible.builtin.shell: |
     kubectl --kubeconfig=/root/.kube/config apply -f https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/tigera-operator.yaml
   become: yes
-  when: not k8s_initialized.stat.exists
   register: calico_deploy
   until: calico_deploy.rc == 0
   retries: 3
@@ -96,16 +94,9 @@
 
 - name: Wait for Tigera operator to be ready
   ansible.builtin.shell: |
-    for i in $(seq 1 30); do
-      if kubectl --kubeconfig=/root/.kube/config -n calico-system get deployment tigera-operator >/dev/null 2>&1; then
-        echo "Tigera operator is ready"
-        exit 0
-      fi
-      echo "Waiting for Tigera operator... ($i/30)"
-      sleep 2
-    done
-    echo "Tigera operator failed to start"
-    exit 1
+    kubectl --kubeconfig=/root/.kube/config -n calico-system wait \
+      --for=condition=Available deployment/tigera-operator \
+      --timeout=300s
   become: yes
   changed_when: false
 
@@ -127,7 +118,6 @@
               natOutgoing: Enabled
               nodeSelector: all()
   become: yes
-  when: not k8s_initialized.stat.exists
 
 - name: Generate kubeadm join token
   ansible.builtin.shell: |
