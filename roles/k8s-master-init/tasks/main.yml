@@ -102,6 +102,10 @@
       --timeout=300s
   become: yes
   changed_when: false
+  register: tigera_operator_ready
+  until: tigera_operator_ready.rc == 0
+  retries: 3
+  delay: 10
 
 - name: Create Calico configuration CR
   ansible.builtin.shell: |
@@ -120,6 +124,44 @@
             nodeSelector: all()
     EOF
   become: yes
+
+- name: Wait for Calico deployments
+  ansible.builtin.shell: |
+    kubectl --kubeconfig=/root/.kube/config -n calico-system wait \
+      --for=condition=Available deployment/calico-kube-controllers \
+      --timeout=300s
+    kubectl --kubeconfig=/root/.kube/config -n calico-system rollout status \
+      deployment/calico-typha --timeout=300s
+  become: yes
+  changed_when: false
+  register: calico_controllers_ready
+  until: calico_controllers_ready.rc == 0
+  retries: 3
+  delay: 10
+
+- name: Wait for Calico node and CSI daemonsets
+  ansible.builtin.shell: |
+    set -euo pipefail
+    kubectl --kubeconfig=/root/.kube/config -n calico-system rollout status \
+      daemonset/calico-node --timeout=300s
+    kubectl --kubeconfig=/root/.kube/config -n calico-system rollout status \
+      daemonset/csi-node-driver --timeout=300s
+  become: yes
+  changed_when: false
+  register: calico_daemonsets_ready
+  until: calico_daemonsets_ready.rc == 0
+  retries: 3
+  delay: 10
+
+- name: Verify Calico CNI configuration exists
+  ansible.builtin.shell: |
+    test -n "$(find /etc/cni/net.d -maxdepth 1 -type f -name '*.conflist' -print -quit)"
+  become: yes
+  changed_when: false
+  register: calico_cni_ready
+  until: calico_cni_ready.rc == 0
+  retries: 30
+  delay: 10
 
 - name: Generate kubeadm join token
   ansible.builtin.shell: |

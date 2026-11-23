@@ -172,6 +172,20 @@
   register: crio_status
   changed_when: false
 
+- name: Restart CRI-O with proxy environment
+  ansible.builtin.systemd:
+    name: cri-o
+    state: restarted
+    daemon_reload: yes
+  become: yes
+
+- name: Wait for CRI-O socket
+  ansible.builtin.wait_for:
+    path: /var/run/crio/crio.sock
+    state: present
+    timeout: 60
+  become: yes
+
 - name: Display CRI-O status
   ansible.builtin.debug:
     msg: "CRI-O is running successfully"
