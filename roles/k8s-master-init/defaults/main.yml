@@ -1,5 +1,4 @@
 ---
 # Default variables for k8s-master-init role
 
-k8s_pod_cidr: "172.16.0.0/16"
 calico_version: "v3.27.0"

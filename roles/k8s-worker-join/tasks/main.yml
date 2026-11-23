@@ -27,6 +27,9 @@
 - name: Join worker node to cluster
   ansible.builtin.shell: |
     set -euo pipefail
+    set -a
+    . /etc/environment
+    set +a
     kubeadm join {{ k8s_api_endpoint }} \
       --token {{ k8s_join_token }} \
       --discovery-token-ca-cert-hash sha256:{{ k8s_ca_cert_hash }} \

@@ -120,6 +120,14 @@
       cgroup_manager = "systemd"
   become: yes
 
+- name: Configure CRI-O proxy environment
+  ansible.builtin.shell: |
+    cat /etc/environment >> /etc/default/crio
+    sed -i '\|^no_proxy=| s|,{{ k8s_pod_cidr }}||g; /^no_proxy=/ s|$|,{{ k8s_pod_cidr }}|' /etc/default/crio
+    sed -i '\|^NO_PROXY=| s|,{{ k8s_pod_cidr }}||g; /^NO_PROXY=/ s|$|,{{ k8s_pod_cidr }}|' /etc/default/crio
+  become: yes
+  changed_when: false
+
 - name: Enable and start CRI-O service
   ansible.builtin.systemd:
     name: crio
