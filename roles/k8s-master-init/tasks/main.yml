@@ -125,7 +125,6 @@
   become: yes
   register: join_token
   changed_when: false
-  when: not k8s_initialized.stat.exists
 
 - name: Get certificate key for join
   ansible.builtin.shell: |
@@ -133,7 +132,6 @@
   become: yes
   register: cert_key
   changed_when: false
-  when: not k8s_initialized.stat.exists
 
 - name: Get API server endpoint
   ansible.builtin.shell: |
@@ -154,7 +152,6 @@
     k8s_join_token: "{{ join_token.stdout }}"
     k8s_api_endpoint: "{{ api_endpoint.stdout }}"
     k8s_ca_cert_hash: "{{ ca_cert_hash.stdout }}"
-  when: not k8s_initialized.stat.exists
 
 - name: Display cluster initialization status
   ansible.builtin.debug:

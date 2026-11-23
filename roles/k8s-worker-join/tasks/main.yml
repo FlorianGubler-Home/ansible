@@ -55,7 +55,6 @@
     chown debian:debian /home/debian/.kube/config
     chmod 600 /home/debian/.kube/config
   become: yes
-  when: not kubelet_config.stat.exists
   changed_when: false
 
 - name: Wait for kubelet to be ready
