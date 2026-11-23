@@ -183,8 +183,3 @@
     state: present
     timeout: 60
   become: yes
-
-- name: Display CRI-O status
-  ansible.builtin.debug:
-    msg: "CRI-O is running successfully"
-  when: crio_status.status.ActiveState == "active"
