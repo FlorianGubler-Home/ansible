@@ -122,16 +122,29 @@
 
 - name: Configure CRI-O proxy environment
   ansible.builtin.shell: |
-    cat /etc/environment >> /etc/default/crio
-    sed -i '\|^no_proxy=| s|,{{ k8s_pod_cidr }}||g; /^no_proxy=/ s|$|,{{ k8s_pod_cidr }}|' /etc/default/crio
-    sed -i '\|^NO_PROXY=| s|,{{ k8s_pod_cidr }}||g; /^NO_PROXY=/ s|$|,{{ k8s_pod_cidr }}|' /etc/default/crio
+    set -euo pipefail
+    tmp=$(mktemp)
+    merged=$(mktemp)
+    trap 'rm -f "$tmp" "$merged"' EXIT
+    touch /etc/default/crio
+    cat /etc/default/crio > "$tmp"
+    cat /etc/environment >> "$tmp"
+    tac "$tmp" | awk -F= '!seen[$1]++' | tac > "$merged"
+    sed -i 's|,{{ k8s_pod_cidr }}||g' "$merged"
+    sed -i '\|^no_proxy=| s|$|,{{ k8s_pod_cidr }}|' "$merged"
+    sed -i '\|^NO_PROXY=| s|$|,{{ k8s_pod_cidr }}|' "$merged"
+    if ! cmp -s "$merged" /etc/default/crio; then
+      cp "$merged" /etc/default/crio
+      echo changed
+    fi
   become: yes
-  changed_when: false
+  register: crio_proxy_config
+  changed_when: "'changed' in crio_proxy_config.stdout"
 
 - name: Enable and start CRI-O service
   ansible.builtin.systemd:
     name: crio
-    state: started
+    state: restarted
     enabled: yes
     daemon_reload: yes
   become: yes
@@ -163,21 +176,6 @@
     daemon_reload: yes
   become: yes
   # Don't start kubelet yet - it will fail without kubeadm init/join configuration
-
-- name: Verify CRI-O is running
-  ansible.builtin.systemd:
-    name: crio
-    state: started
-  become: yes
-  register: crio_status
-  changed_when: false
-
-- name: Restart CRI-O with proxy environment
-  ansible.builtin.systemd:
-    name: cri-o
-    state: restarted
-    daemon_reload: yes
-  become: yes
 
 - name: Wait for CRI-O socket
   ansible.builtin.wait_for:
