@@ -36,7 +36,6 @@
     cp /etc/kubernetes/admin.conf /root/.kube/config
     chmod 600 /root/.kube/config
   become: yes
-  when: not k8s_initialized.stat.exists
   changed_when: false
 
 - name: Create .kube directory for debian user
@@ -54,7 +53,6 @@
     chown debian:debian /home/debian/.kube/config
     chmod 600 /home/debian/.kube/config
   become: yes
-  when: not k8s_initialized.stat.exists
   changed_when: false
 
 - name: Wait for Kubernetes API server to be ready
