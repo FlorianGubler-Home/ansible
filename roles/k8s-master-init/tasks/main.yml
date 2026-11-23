@@ -137,7 +137,7 @@
 
 - name: Set API server endpoint
   ansible.builtin.set_fact:
-    k8s_api_endpoint: "https://{{ ansible_host }}:6443"
+    k8s_api_endpoint: "{{ ansible_host }}:6443"
 
 - name: Get CA cert hash
   ansible.builtin.shell: |

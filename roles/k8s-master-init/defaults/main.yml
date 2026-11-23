@@ -1,4 +1,0 @@
----
-# Default variables for k8s-master-init role
-
-calico_version: "v3.27.0"
