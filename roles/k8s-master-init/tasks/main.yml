@@ -97,7 +97,7 @@
 
 - name: Wait for Tigera operator to be ready
   ansible.builtin.shell: |
-    kubectl --kubeconfig=/root/.kube/config -n calico-system wait \
+    kubectl --kubeconfig=/root/.kube/config -n tigera-operator wait \
       --for=condition=Available deployment/tigera-operator \
       --timeout=300s
   become: yes
